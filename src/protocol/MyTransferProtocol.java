@@ -243,6 +243,46 @@ public class MyTransferProtocol implements IRDTProtocol {
         this.brake = true;
     }
 
+    public void senderConnect(){
+        
+        
+    }
+    
+    public void senderSend(){
+        
+        
+    }
+    
+    public void senderSend(Integer[] b){
+        
+        
+    }
+    
+    public void senderQuit(){
+        
+        
+    }
+    
+    public void receiverConnect(){
+        
+        
+    }
+    
+    public void receiverReceive(){
+        
+        
+    }
+    
+    public void receiverFix(){
+        
+        
+    }
+    
+    public void receiverQuit(){
+        
+        
+    }
+    
     public enum Role {
         Sender, Receiver
     }
