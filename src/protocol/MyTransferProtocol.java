@@ -2,6 +2,9 @@ package protocol;
 
 import client.*;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class MyTransferProtocol implements IRDTProtocol {
 
     NetworkLayer networkLayer;
@@ -28,8 +31,29 @@ public class MyTransferProtocol implements IRDTProtocol {
             // keep track of where we are in the data
             int filePointer = 0;
 
-            // loop until we are done transmitting the file
+            Map<Integer, Integer[]> packets = new HashMap<Integer, Integer[]>();
+
             boolean stop = false;
+            
+            for(int i = 1; filePointer < fileContents.length; i++){
+                Integer checksum = i;
+                Integer xor = i;
+                Integer[] packetContents = new Integer[Math.min(packetSize, fileContents.length - filePointer) + 3];
+                packetContents[2] = i;
+                for(int j = 0; j < packetSize && filePointer < fileContents.length; j++){
+                    packetContents[i + 3] = fileContents[filePointer];
+                    checksum += fileContents[filePointer];
+                    xor = xor ^ fileContents[filePointer];
+                    filePointer++;
+                }
+                checksum += xor;
+                packetContents[0] = checksum;
+                packetContents[1] = xor;
+                packets.put(i, packetContents);
+            }
+            
+            // loop until we are done transmitting the file
+            stop = false;
             while (!stop) {
                 // create a new packet
                 // with size packetSize
@@ -38,8 +62,7 @@ public class MyTransferProtocol implements IRDTProtocol {
                         fileContents.length - filePointer)];
 
                 // read (packetToSend.length) bytes and store them in the packet
-                for (int i = 0; i < packetSize
-                        && filePointer < fileContents.length; i++) {
+                for (int i = 0; i < packetSize && filePointer < fileContents.length; i++) {
                     packetToSend[i] = fileContents[filePointer];
                     filePointer++;
                 }
