@@ -12,9 +12,9 @@ public class NaiveDataTransferProtocol implements IRDTProtocol {
 	@Override
 	public void run() {
 		/**
-		 * 
+		 *
 		 * Send mode
-		 * 
+		 *
 		 */
 		if (this.role == Role.Sender) {
 			System.out.println("Sending...");
@@ -60,13 +60,13 @@ public class NaiveDataTransferProtocol implements IRDTProtocol {
 		}
 
 		/**
-		 * 
+		 *
 		 * Receive mode
-		 * 
+		 *
 		 */
 		else if (this.role == Role.Receiver) {
 			System.out.println("Receiving...");
-			
+
 			// create the array that will contain the file contents
 			Integer[] fileContents = new Integer[0];
 
