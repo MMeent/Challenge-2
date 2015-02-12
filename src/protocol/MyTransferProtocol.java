@@ -41,8 +41,10 @@ public class MyTransferProtocol implements IRDTProtocol {
             boolean connected = false;
             while (!connected) {
                 networkLayer.sendPacket(packets.get(0));
-                Integer[] resp = null;
-                while((resp = networkLayer.receivePacket()) == null){}
+                Integer[] resp = networkLayer.receivePacket();
+                while (resp == null){
+                    resp = networkLayer.receivePacket();
+                }
                 if (resp.length == 0) {
                     connected = true;
                 }
@@ -54,8 +56,10 @@ public class MyTransferProtocol implements IRDTProtocol {
             
             boolean done = false;
             while (!done){
-                Integer[] response = null;
-                while ((response = networkLayer.receivePacket()) == null) {}
+                Integer[] response = networkLayer.receivePacket();
+                while (response == null) {
+                    response = networkLayer.receivePacket();
+                }
                 if (response.length == 0){
                     done = true;
                 } else {
@@ -101,8 +105,10 @@ public class MyTransferProtocol implements IRDTProtocol {
             boolean connected = false;
             int total = 0;
             while (!connected) {
-                Integer[] firstPacket = null;
-                while((firstPacket = networkLayer.receivePacket()) == null) {}
+                Integer[] firstPacket = networkLayer.receivePacket();
+                while(firstPacket == null) {
+                    firstPacket = networkLayer.receivePacket();
+                }
                 if (Packets.checkPacket(firstPacket)) {
                     total = firstPacket[2] * 256 + firstPacket[3];
                     networkLayer.sendPacket(new Integer[0]);
@@ -115,9 +121,10 @@ public class MyTransferProtocol implements IRDTProtocol {
             }
 
             for (int i = 0; i < total; i++) {
-                Integer[] packet = null;
-                while ((packet = networkLayer.receivePacket()) == null) {}
-                ;
+                Integer[] packet = networkLayer.receivePacket();
+                while (packet == null) {
+                    packet = networkLayer.receivePacket();
+                }
                 if (Packets.checkPacket(packet)) {
                     packets.put(Packets.getIndex(packet), packet);
                 }
@@ -154,10 +161,10 @@ public class MyTransferProtocol implements IRDTProtocol {
                 networkLayer.sendPacket(packet);
 
                 // try to receive a packet from the network layer
-                packet = null;
-                while ((packet = networkLayer.receivePacket()) == null) {
+                packet = networkLayer.receivePacket();
+                while (packet == null) {
+                    packet = networkLayer.receivePacket();
                 }
-                ;
 
                 // if we reached the end of file, stop receiving
                 if (packet.length == 0) {
