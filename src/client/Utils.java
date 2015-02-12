@@ -127,7 +127,7 @@ public class Utils {
 		/**
 		 * Stops the helper thread
 		 */
-		public static void Stop() {
+		public static void Stop() throws IllegalStateException{
 			if (!started)
 				throw new IllegalStateException(
 						"Not started or already stopped");
