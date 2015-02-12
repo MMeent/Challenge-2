@@ -29,6 +29,10 @@ public class Program {
 	// Challenge server port
 	private static int serverPort = 8003;
 
+	public IRDTProtocol getProtocol() {
+		return protocolImpl;
+	}
+
 	/*
 	 * 
 	 * 

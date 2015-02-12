@@ -2,10 +2,13 @@ package protocol;
 
 import client.*;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class MyTransferProtocol implements IRDTProtocol {
+    public static final int PACKET_SIZE = 128;
 
     NetworkLayer networkLayer;
 
@@ -14,6 +17,7 @@ public class MyTransferProtocol implements IRDTProtocol {
 
     @Override
     public void run() {
+
         /**
          *
          * Send mode
@@ -33,36 +37,12 @@ public class MyTransferProtocol implements IRDTProtocol {
 
             Map<Integer, Integer[]> packets = new HashMap<Integer, Integer[]>();
 
-            boolean stop = false;
-            
-            for (int i = 1; filePointer < fileContents.length; i++) {
-                Integer checksum = i;
-                Integer xor = i;
-                Integer[] packetContents = new Integer[Math.min(packetSize, fileContents.length - filePointer) + 3];
-                packetContents[2] = i >>> 8;
-                packetContents[3] = i & 255;
-                for(int j = 0; j < packetSize && filePointer < fileContents.length; j++){
-                    packetContents[i + 4] = fileContents[filePointer];
-                    checksum += fileContents[filePointer];
-                    xor = xor ^ fileContents[filePointer];
-                    filePointer++;
-                }
-                checksum += xor;
-                packetContents[0] = checksum;
-                packetContents[1] = xor;
-                packets.put(i, packetContents);
-            }
-            Integer[] firstPacket = new Integer[4];
-            firstPacket[2] = packets.size() >>> 8;
-            firstPacket[3] = packets.size() & 255;
-            firstPacket[1] = packets.size();
-            firstPacket[0] = packets.size() + packets.size();
-            packets.put(0, firstPacket);
-            
+            //Map with the index of a packet as Key and the value of that packet as content.
+            Map<Integer, Integer[]> packets = Packets.makePackets(fileContents);
+
             for (int i = 0; i < packets.size(); i++) {
                 networkLayer.sendPacket(packets.get(i));
             }
-            networkLayer.sendPacket(new Integer[0]);
             
             boolean done = false;
             while (!done){
@@ -101,6 +81,8 @@ public class MyTransferProtocol implements IRDTProtocol {
          *
          */
         else if (this.role == Role.Receiver) {
+            List<Integer> corruptPackets;
+
             System.out.println("Receiving...");
 
             // create the array that will contain the file contents
@@ -109,6 +91,7 @@ public class MyTransferProtocol implements IRDTProtocol {
             // loop until we are done receiving the file
             boolean stop = false;
             while (!stop) {
+                corruptPackets = new ArrayList<Integer>();
 
                 // try to receive a packet from the network layer
                 Integer[] packet = networkLayer.receivePacket();
@@ -121,6 +104,8 @@ public class MyTransferProtocol implements IRDTProtocol {
                         System.out.println("Reached end-of-file. Done receiving.");
                         stop = true;
                     }
+
+
 
                     // if we haven't reached the end of file yet
                     else {

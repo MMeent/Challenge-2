@@ -19,7 +19,7 @@ public class NaiveDataTransferProtocol implements IRDTProtocol {
 		if (this.role == Role.Sender) {
 			System.out.println("Sending...");
 
-			// set packetSize
+			// set PACKET_SIZE
 			int packetSize = 128;
 
 			// read from the input file
@@ -32,8 +32,8 @@ public class NaiveDataTransferProtocol implements IRDTProtocol {
 			boolean stop = false;
 			while (!stop) {
 				// create a new packet
-				// with size packetSize
-				// or the remaining file size if less than packetSize
+				// with size PACKET_SIZE
+				// or the remaining file size if less than PACKET_SIZE
 				Integer[] packetToSend = new Integer[Math.min(packetSize,
 						fileContents.length - filePointer)];
 
