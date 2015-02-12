@@ -187,7 +187,7 @@ public class DRDTChallengeClient implements Runnable {
 	 * Stops the client, and disconnects it from the server.
 	 */
 	public void stop() {
-		Utils.Timeout.Stop();
+		try{Utils.Timeout.Stop();}catch(Exception e){}
 
 		try {
 			socket.setTcpNoDelay(true);
