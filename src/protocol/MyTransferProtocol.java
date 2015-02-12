@@ -67,7 +67,7 @@ public class MyTransferProtocol implements IRDTProtocol {
         boolean connected = false;
         this.packets = Packets.makePackets(Utils.getFileContents());
         
-        Utils.Timeout.SetTimeout(500L, this, null);
+        Utils.Timeout.SetTimeout(1000L, this, null);
         Utils.Timeout.Start();
         Integer[] packet = new Integer[4];
         int size = this.packets.size();
@@ -109,7 +109,7 @@ public class MyTransferProtocol implements IRDTProtocol {
     
     public void senderWaitConfirm(){
         this.state = 2;
-        Utils.Timeout.SetTimeout(1500L, this, null);
+        Utils.Timeout.SetTimeout(11000L, this, null);
         Utils.Timeout.Start();
         Integer[] packet = networkLayer.receivePacket();
         while(!brake && packet == null){
@@ -138,7 +138,7 @@ public class MyTransferProtocol implements IRDTProtocol {
         this.state = 1;
         System.out.println("Start connection");
         boolean connected = false;
-        Utils.Timeout.SetTimeout(500L, this, null);
+        Utils.Timeout.SetTimeout(1000L, this, null);
         Utils.Timeout.Start();
         while(!connected && !brake){
             Integer[] packet = networkLayer.receivePacket();
@@ -160,7 +160,7 @@ public class MyTransferProtocol implements IRDTProtocol {
             this.receiverQuit();
         }
         System.out.println("Start receiving");
-        Utils.Timeout.SetTimeout(500L, this, null);
+        Utils.Timeout.SetTimeout(1000L, this, null);
         Utils.Timeout.Start();
         while (!brake) {
             Integer[] packet = networkLayer.receivePacket();
@@ -202,7 +202,7 @@ public class MyTransferProtocol implements IRDTProtocol {
     
     public void receiverQuit(){
         this.state = 4;
-        Utils.Timeout.SetTimeout(500L, this, null);
+        Utils.Timeout.SetTimeout(1000L, this, null);
         Utils.Timeout.Start();
         networkLayer.sendPacket(new Integer[0]);
         while(!brake){
