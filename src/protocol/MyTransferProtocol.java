@@ -266,25 +266,29 @@ public class MyTransferProtocol implements IRDTProtocol {
     public void senderConnect(){
         this.state = 1;
         System.out.println("Connecting.......");
-
         
         boolean connected = false;
+        this.packets = Packets.makePackets(Utils.getFileContents());
+        
+        Utils.Timeout.SetTimeout(500L, this, null);
+        Utils.Timeout.Start();
+        Integer[] packet = new Integer[4];
+        int size = this.packets.size();
+        int xor = size ^ (size >>> 8);
+        int sum = size + (size >>> 8) + xor;
+        packet[0] = sum;
+        packet[1] = xor;
+        packet[2] = size >>> 8;
+        packet[3] = size;
+        networkLayer.sendPacket(packet);
         while (!connected) {
-            networkLayer.sendPacket(Packets.makePackets(Utils.getFileContents()).get(0));
-            System.out.println("Trying to connect");
-            Integer[] packet = networkLayer.receivePacket();
-            Utils.Timeout.Start();
-            Utils.Timeout.SetTimeout(500L, this, null);
-            while(packet == null && brake) {
-                packet = networkLayer.receivePacket();
-            }
-            brake = false;
-            Utils.Timeout.Stop();
-            if (packet.length == 0) {
-                System.out.println("Connected");
+            packet = networkLayer.receivePacket();
+            if (packet != null) {
                 connected = true;
+                Utils.Timeout.Stop();
             }
         }
+        senderSend();
     }
     
     public void senderSend(){
@@ -307,7 +311,26 @@ public class MyTransferProtocol implements IRDTProtocol {
     
     public void senderWaitConfirm(){
         this.state = 2;
-        
+        Utils.Timeout.SetTimeout(1500L, this, null);
+        Utils.Timeout.Start();
+        Integer[] packet = networkLayer.receivePacket();
+        while(!brake && packet == null){
+            networkLayer.receivePacket();
+        }
+        Utils.Timeout.Stop();
+        this.brake = false;
+        if (packet == null) {
+            return;
+        }
+        if (packet.length == 0) {
+            this.senderQuit();
+        } else if (Packets.checkPacket(packet)) {
+            Integer[] lostPackets = new Integer[(packet.length / 2) - 1];
+            for (int i = 0; i < (packet.length / 2) - 1; i++) {
+                lostPackets[i] = packet[i * 2 + 2] * 256 + packet[i * 2 + 3];
+            }
+            this.senderSend(lostPackets);
+        }
     }
     
     public void senderQuit(){
@@ -330,6 +353,7 @@ public class MyTransferProtocol implements IRDTProtocol {
             }
         }
         Utils.Timeout.Stop();
+        this.brake = false;
         if(!brake) this.receiverReceive();
     }
     
@@ -356,9 +380,7 @@ public class MyTransferProtocol implements IRDTProtocol {
             this.packets.put(Packets.getIndex(packet), packet);
         }
         Utils.Timeout.Stop();
-        if (!brake) {
-            this.receiverFix();
-        }
+        this.brake = false;
     }
     
     public void receiverFix(){
@@ -397,6 +419,7 @@ public class MyTransferProtocol implements IRDTProtocol {
             }
         }
         Utils.Timeout.Stop();
+        this.brake = false;
     }
     
     public void receiverFinish(){

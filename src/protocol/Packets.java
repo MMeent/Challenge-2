@@ -21,7 +21,7 @@ public class Packets {
         // Map with the index of the packet as Key and the contents of the packet as Value.
         Map<Integer, Integer[]> packets = new HashMap<Integer, Integer[]>();
 
-        for (int i = 1; filePointer < fileContents.length; i++) {
+        for (int i = 0; filePointer < fileContents.length; i++) {
             Integer checksum = i;
             Integer xor = i;
             Integer[] packetContents = new Integer[Math.min(MyTransferProtocol.PACKET_SIZE, fileContents.length - filePointer) + 4];
