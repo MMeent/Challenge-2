@@ -82,12 +82,14 @@ public class MyTransferProtocol implements IRDTProtocol {
         packet[2] = size >>> 8;
         packet[3] = size;
         networkLayer.sendPacket(packet);
+        System.out.println("Sent handshake");
         while (!connected && !brake) {
             packet = networkLayer.receivePacket();
             if (packet != null) {
                 connected = true;
             }
         }
+        try {Utils.Timeout.Stop();} catch (Exception e){}
         if(!brake) senderSend();
     }
     
@@ -150,7 +152,10 @@ public class MyTransferProtocol implements IRDTProtocol {
                 connected = true;
             }
         }
-        if(!brake) this.receiverReceive();
+        if(!brake) {
+            try {Utils.Timeout.Stop();} catch (Exception e){}
+            this.receiverReceive();
+        }
     }
     
     public void receiverReceive(){
