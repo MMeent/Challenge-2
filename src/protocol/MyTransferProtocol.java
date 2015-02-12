@@ -10,9 +10,10 @@ import java.util.Map;
 public class MyTransferProtocol implements IRDTProtocol {
     public static final int PACKET_SIZE = 128;
 
+    public static boolean brake = false;
     NetworkLayer networkLayer;
 
-    private Role role = Role.Sender;
+    private Role role = Role.Receiver;
     //private Role role = Role.Receiver;
 
     @Override
@@ -41,11 +42,17 @@ public class MyTransferProtocol implements IRDTProtocol {
             boolean connected = false;
             while (!connected) {
                 networkLayer.sendPacket(packets.get(0));
-                Integer[] resp = networkLayer.receivePacket();
-                while (resp == null){
-                    resp = networkLayer.receivePacket();
+                System.out.println("Trying to connect");
+                Integer[] packet = networkLayer.receivePacket();
+                Utils.Timeout.Start();
+                Utils.Timeout.SetTimeout(500L, this, null);
+                while(packet == null && brake) {
+                    packet = networkLayer.receivePacket();
                 }
-                if (resp.length == 0) {
+                brake = false;
+                Utils.Timeout.Stop();
+                if (packet.length == 0) {
+                    System.out.println("Connected");
                     connected = true;
                 }
             }
@@ -56,26 +63,28 @@ public class MyTransferProtocol implements IRDTProtocol {
             
             boolean done = false;
             while (!done){
-                Integer[] response = networkLayer.receivePacket();
-                while (response == null) {
-                    response = networkLayer.receivePacket();
+                Integer[] packet = networkLayer.receivePacket();
+                Utils.Timeout.Start();
+                Utils.Timeout.SetTimeout(500L, this, null);
+                while(packet == null && brake) {
+                    packet = networkLayer.receivePacket();
                 }
-                if (response.length == 0){
+                brake = false;
+                Utils.Timeout.Stop();
+                if (packet.length == 0){
                     done = true;
+                    System.out.println("Finished the transmission");
                 } else {
-                    int checksum = response[0];
-                    int xor = response[1];
-                    int[] numbers = new int[(response.length - 2) / 2];
+                    int checksum = packet[0];
+                    int xor = packet[1];
+                    int[] numbers = new int[(packet.length - 2) / 2];
                     for(int i = 0; i < numbers.length; i++){
-                        checksum -= response[i * 2];
-                        checksum -= response[i * 2 + 1];
-                        xor ^= response[i * 2];
-                        xor ^= response[i * 2 + 1];
-                        numbers[i] = response[i * 2] * 256 + response[i * 2 + 1];
+                        numbers[i] = packet[i * 2] * 256 + packet[i * 2 + 1];
                     }
-                    if (checksum != 0 || xor != 0) {
+                    if (Packets.checkPacket(packet)) {
                         networkLayer.sendPacket(new Integer[0]);
                     } else {
+                        System.out.println("Resending the missing packets");
                         for (int i : numbers) {
                             networkLayer.sendPacket(packets.get(i));
                         }
@@ -100,19 +109,25 @@ public class MyTransferProtocol implements IRDTProtocol {
 
             // create the array that will contain the file contents
             Integer[] fileContents = new Integer[0];
-
             Map<Integer, Integer[]> packets = new HashMap<Integer, Integer[]>();
             boolean connected = false;
             int total = 0;
+
             while (!connected) {
-                Integer[] firstPacket = networkLayer.receivePacket();
-                while(firstPacket == null) {
-                    firstPacket = networkLayer.receivePacket();
+                System.out.println("Trying to connect");
+                Integer[] packet = networkLayer.receivePacket();
+                Utils.Timeout.Start();
+                Utils.Timeout.SetTimeout(500L, this, null);
+                while(packet == null && brake) {
+                    packet = networkLayer.receivePacket();
                 }
-                if (Packets.checkPacket(firstPacket)) {
-                    total = firstPacket[2] * 256 + firstPacket[3];
+                brake = false;
+                Utils.Timeout.Stop();
+                if (Packets.checkPacket(packet)) {
+                    total = packet[2] * 256 + packet[3];
                     networkLayer.sendPacket(new Integer[0]);
                     connected = true;
+                    System.out.println("Connected!");
                 } else {
                     Integer[] b = new Integer[1];
                     b[0] = 0;
@@ -120,16 +135,25 @@ public class MyTransferProtocol implements IRDTProtocol {
                 }
             }
 
+            System.out.println("Receiving data");
             for (int i = 0; i < total; i++) {
                 Integer[] packet = networkLayer.receivePacket();
-                while (packet == null) {
+                Utils.Timeout.Start();
+                Utils.Timeout.SetTimeout(500L, this, null);
+                while(packet == null && brake) {
                     packet = networkLayer.receivePacket();
                 }
+                brake = false;
+                Utils.Timeout.Stop();
                 if (Packets.checkPacket(packet)) {
                     packets.put(Packets.getIndex(packet), packet);
+                } else {
+                    System.out.println("Dropped packet");
                 }
             }
 
+
+            System.out.println("Asking for unfinished data");
             // loop until we are done receiving the file
             boolean stop = false;
             while (!stop) {
@@ -139,6 +163,8 @@ public class MyTransferProtocol implements IRDTProtocol {
                         missing.add(i);
                     }
                 }
+                
+                System.out.println("missing these parts: " + missing.toString());
 
                 Integer[] packet = new Integer[2 + missing.size() * 2];
                 int checksum = 0;
@@ -162,9 +188,13 @@ public class MyTransferProtocol implements IRDTProtocol {
 
                 // try to receive a packet from the network layer
                 packet = networkLayer.receivePacket();
-                while (packet == null) {
+                Utils.Timeout.Start();
+                Utils.Timeout.SetTimeout(500L, this, null);
+                while(packet == null && brake) {
                     packet = networkLayer.receivePacket();
                 }
+                brake = false;
+                Utils.Timeout.Stop();
 
                 // if we reached the end of file, stop receiving
                 if (packet.length == 0) {
@@ -179,6 +209,8 @@ public class MyTransferProtocol implements IRDTProtocol {
                     }
                 }
             }
+
+            System.out.println("Starting building the file");
             for (int i = 0; i < total; i++) {
                 Integer[] ar = packets.get(i);
                 
@@ -208,7 +240,7 @@ public class MyTransferProtocol implements IRDTProtocol {
 
     @Override
     public void TimeoutElapsed(Object tag) {
-
+        this.brake = true;
     }
 
     public enum Role {
