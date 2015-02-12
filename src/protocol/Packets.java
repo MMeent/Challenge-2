@@ -67,7 +67,7 @@ public class Packets {
             return false;
         }
     }
-
+/*
     public static List<Integer> checkPackets(Map<Integer, Integer[]> packet) {
         int index = 0;
 
@@ -93,6 +93,7 @@ public class Packets {
 
         return corruptPackets;
     }
+    */
     
     public static Integer getIndex(Integer[] packet){
         if (packet.length < 4) {

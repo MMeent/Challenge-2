@@ -19,7 +19,6 @@ public class MyTransferProtocol implements IRDTProtocol {
     private Role role = Role.Receiver;
     
     private Map<Integer, Integer[]> packets;
-    //private Role role = Role.Receiver;
 
     @Override
     public void run() {
@@ -218,10 +217,10 @@ public class MyTransferProtocol implements IRDTProtocol {
             System.out.println("Starting building the file");
             for (int i = 0; i < total; i++) {
                 Integer[] ar = packets.get(i);
-                
+
                 Integer[] arr = new Integer[ar.length - 4];
                 System.arraycopy(ar, 4, arr, 0, ar.length - 4);
-                
+
                 Integer[] newFileContents = new Integer[fileContents.length
                         + arr.length];
                 System.arraycopy(fileContents, 0, newFileContents, 0,
@@ -246,11 +245,29 @@ public class MyTransferProtocol implements IRDTProtocol {
     @Override
     public void TimeoutElapsed(Object tag) {
         this.brake = true;
+        if(this.role == Role.Receiver){
+            switch(state){
+                case 1: this.receiverConnect(); break;
+                case 2: this.receiverFix(); break;
+                case 3: this.receiverFix(); break;
+                case 4: this.receiverQuit(); break;
+                default: this.receiverQuit(); break;
+            }
+        } else if (this.role == Role.Sender) {
+            switch(state){
+                case 1: this.senderConnect(); break;
+                case 2: this.senderWaitConfirm(); break;
+                case 3: this.senderWaitConfirm(); break;
+                case 4: this.senderQuit(); break;
+            }
+        }
     }
 
     public void senderConnect(){
+        this.state = 1;
         System.out.println("Connecting.......");
 
+        
         boolean connected = false;
         while (!connected) {
             networkLayer.sendPacket(Packets.makePackets(Utils.getFileContents()).get(0));
@@ -271,21 +288,30 @@ public class MyTransferProtocol implements IRDTProtocol {
     }
     
     public void senderSend(){
-        for(Map.Entry<Integer,Integer[]> entry : packets.entrySet()) {
-            networkLayer.sendPacket(entry.getValue());
+        this.state = 2;
+        for(Integer i: this.packets.keySet()) {
+            networkLayer.sendPacket(this.packets.get(i));
         }
+        this.senderWaitConfirm();
     }
     
     public void senderSend(Integer[] b){
-        Map<Integer,Integer[]> argPackets = Packets.makePackets(b);
+        this.state = 2;
         System.out.println("Sending...");
-        for(Map.Entry<Integer,Integer[]> entry : argPackets.entrySet()) {
-            networkLayer.sendPacket(entry.getValue());
+        for (Integer i: b){
+            networkLayer.sendPacket(this.packets.get(i));
         }
         System.out.println("Finished Sending");
+        this.senderWaitConfirm();
+    }
+    
+    public void senderWaitConfirm(){
+        this.state = 2;
+        
     }
     
     public void senderQuit(){
+        this.state = 4;
         networkLayer.sendPacket(new Integer[0]);
     }
     
@@ -309,12 +335,22 @@ public class MyTransferProtocol implements IRDTProtocol {
     
     public void receiverReceive(){
         this.state = 2;
+        if (this.packets.size() == amount){
+            this.receiverQuit();
+        }
         System.out.println("Start receiving");
         Utils.Timeout.SetTimeout(500L, this, null);
         Utils.Timeout.Start();
-        while (!brake && this.packets.size() < amount) {
+        while (!brake) {
             Integer[] packet = networkLayer.receivePacket();
-            if (packet == null || !Packets.checkPacket(packet)) {
+            if (packet == null) {
+                continue;
+            }
+            if (packet.length == 0) {
+                Utils.Timeout.Stop();
+                this.receiverReceive();
+            }
+            if (!Packets.checkPacket(packet)) {
                 continue;
             }
             this.packets.put(Packets.getIndex(packet), packet);
@@ -326,16 +362,64 @@ public class MyTransferProtocol implements IRDTProtocol {
     }
     
     public void receiverFix(){
-        for(int i = 0; i < amount; )
+        List<Integer> missing = new ArrayList<Integer>();
+        for (int i = 0; i < amount; i++) {
+            if (!packets.containsKey(i)) {
+                missing.add(i);
+            }
+        }
+        Integer[] sending = new Integer[missing.size() * 2 + 2];
+        int sum = 0;
+        int xor = 0;
+        for (Integer i: missing) {
+            sum += i + i >>> 8;
+            xor ^= i + i >>> 8;
+            sending[i * 2 + 2] = i;
+            sending[i * 2 + 3] = i >>> 8;
+        }
+        sum += xor;
+        sending[0] = sum;
+        sending[1] = xor;
+        networkLayer.sendPacket(sending);
+        receiverReceive();
     }
     
     public void receiverQuit(){
-        
+        this.state = 4;
+        Utils.Timeout.SetTimeout(500L, this, null);
+        Utils.Timeout.Start();
+        networkLayer.sendPacket(new Integer[0]);
+        while(!brake){
+            Integer[] packet = networkLayer.receivePacket();
+            if (packet != null && packet.length == 0) {
+                Utils.Timeout.Stop();
+                this.receiverFinish();
+            }
+        }
+        Utils.Timeout.Stop();
     }
     
     public void receiverFinish(){
-        
-        
+        Integer[] fileContents = new Integer[0];
+        for (int i = 0; i < amount; i++) {
+            Integer[] ar = packets.get(i);
+
+            Integer[] arr = new Integer[ar.length - 4];
+            System.arraycopy(ar, 4, arr, 0, ar.length - 4);
+
+            Integer[] newFileContents = new Integer[fileContents.length
+                    + arr.length];
+            System.arraycopy(fileContents, 0, newFileContents, 0,
+                    fileContents.length);
+            System.arraycopy(arr, 0, newFileContents,
+                    fileContents.length, arr.length);
+
+            // and assign it as the new fileContents
+            fileContents = newFileContents;
+
+            // write to the output file
+            Utils.setFileContents(fileContents);
+        }
     }
     
     public enum Role {
