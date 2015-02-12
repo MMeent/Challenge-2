@@ -14,12 +14,12 @@ import javax.xml.bind.*;
  * 
  */
 /**
- * 
+ *
  * Class for maintainging communications with the challenge server
- * 
+ *
  * @author Jaco ter Braak, Twente University
  * @version 23-01-2014
- * 
+ *
  *          DO NOT EDIT
  */
 public class DRDTChallengeClient implements Runnable {
@@ -71,7 +71,7 @@ public class DRDTChallengeClient implements Runnable {
 
 	/**
 	 * Constructs the client and connects to the server.
-	 * 
+	 *
 	 * @param groupId
 	 *            The group Id
 	 * @param password
@@ -82,7 +82,7 @@ public class DRDTChallengeClient implements Runnable {
 	 *             if the operation was interrupted
 	 */
 	public DRDTChallengeClient(String serverAddress, int serverPort,
-			int groupId, String password) throws IOException,
+							   int groupId, String password) throws IOException,
 			InterruptedException {
 		Utils.Timeout.Start();
 
@@ -104,7 +104,7 @@ public class DRDTChallengeClient implements Runnable {
 
 	/**
 	 * Connects to the challenge server
-	 * 
+	 *
 	 * @throws IOException
 	 *             if the connection failed
 	 */
@@ -306,7 +306,7 @@ public class DRDTChallengeClient implements Runnable {
 									}
 									this.sendControlMessage("TRANSMIT "
 											+ DatatypeConverter
-													.printBase64Binary(packetContents));
+											.printBase64Binary(packetContents));
 									transmitted = true;
 								}
 							} finally {
@@ -314,7 +314,7 @@ public class DRDTChallengeClient implements Runnable {
 							}
 						}
 					}
-					
+
 					if (!transmitted) {
 						this.sendControlMessage("NOTRANSMIT");
 					}
@@ -384,7 +384,7 @@ public class DRDTChallengeClient implements Runnable {
 
 	/**
 	 * Waits for a control message from the server
-	 * 
+	 *
 	 * @return the message
 	 * @throws ProtocolException
 	 *             if a corrupt message was received
@@ -448,7 +448,7 @@ public class DRDTChallengeClient implements Runnable {
 
 	/**
 	 * Obtains a message from the server, if any exists.
-	 * 
+	 *
 	 * @return the message, null if no message was present
 	 * @throws IOException
 	 */
@@ -470,7 +470,7 @@ public class DRDTChallengeClient implements Runnable {
 
 	/**
 	 * Sends a message to the server
-	 * 
+	 *
 	 * @param message
 	 */
 	private void sendControlMessage(String message) {

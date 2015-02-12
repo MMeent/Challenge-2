@@ -237,7 +237,7 @@ public class MyTransferProtocol implements IRDTProtocol {
             }
         }
     }
-
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
     @Override
     public void setNetworkLayer(NetworkLayer networkLayer) {
         this.networkLayer = networkLayer;
@@ -246,34 +246,47 @@ public class MyTransferProtocol implements IRDTProtocol {
     @Override
     public void TimeoutElapsed(Object tag) {
         this.brake = true;
-        if(this.role == Role.Receiver){
-            switch(state){
-                case 1: this.receiverConnect(); break;
-                case 2: this.receiverFix(); break;
-                case 3: this.receiverFix(); break;
-                case 4: this.receiverQuit(); break;
-                default: this.receiverQuit(); break;
-            }
-        }
     }
 
     public void senderConnect(){
-        
-        
+        System.out.println("Connecting.......");
+
+        boolean connected = false;
+        while (!connected) {
+            networkLayer.sendPacket(Packets.makePackets(Utils.getFileContents()).get(0));
+            System.out.println("Trying to connect");
+            Integer[] packet = networkLayer.receivePacket();
+            Utils.Timeout.Start();
+            Utils.Timeout.SetTimeout(500L, this, null);
+            while(packet == null && brake) {
+                packet = networkLayer.receivePacket();
+            }
+            brake = false;
+            Utils.Timeout.Stop();
+            if (packet.length == 0) {
+                System.out.println("Connected");
+                connected = true;
+            }
+        }
     }
     
     public void senderSend(){
-        
-        
+        for(Map.Entry<Integer,Integer[]> entry : packets.entrySet()) {
+            networkLayer.sendPacket(entry.getValue());
+        }
     }
     
     public void senderSend(Integer[] b){
-        
-        
+        Map<Integer,Integer[]> argPackets = Packets.makePackets(b);
+        System.out.println("Sending...");
+        for(Map.Entry<Integer,Integer[]> entry : argPackets.entrySet()) {
+            networkLayer.sendPacket(entry.getValue());
+        }
+        System.out.println("Finished Sending");
     }
     
     public void senderQuit(){
-        
+        networkLayer.sendPacket(new Integer[0]);
     }
     
     public void receiverConnect(){

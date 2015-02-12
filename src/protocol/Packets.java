@@ -60,18 +60,35 @@ public class Packets {
         for (int i = 3; i < contents.length; i++) {
             xor = xor ^ contents[i];
         }
-
-        //check if the calculated checks of the received packet match the given ones calculated by the sender
-        return sum != contents[0] && xor != contents[1];
+        if(sum == contents[0] && xor == contents[1]) {
+            return true;
+        }
+        else {
+            return false;
+        }
     }
 
     public static List<Integer> checkPackets(Map<Integer, Integer[]> packet) {
+        int index = 0;
+
         List<Integer> corruptPackets = new ArrayList<Integer>();
 
         for (Map.Entry<Integer, Integer[]> entry : packet.entrySet()) {
+            if(entry.getKey() != index) {
+                for(int i = 1; i <= (entry.getKey() - index); i++) {
+                    corruptPackets.add(i + index);
+                }
+                index = entry.getKey();
+            }
             if(!checkPacket(entry.getValue())) {
                 corruptPackets.add(entry.getKey());
+                System.out.println("Invalid packet found!");
             }
+            index++;
+        }
+
+        if(corruptPackets.size() == 0) {
+            System.out.println("All packages retreived correctly");
         }
 
         return corruptPackets;
