@@ -137,6 +137,7 @@ public class Utils {
 			} catch (InterruptedException e) {
 			}
 			started = false;
+			eventHandlers = new HashMap<Date, Map<ITimeoutEventHandler, List<Object>>>();
 		}
 
 		/**
