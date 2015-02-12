@@ -39,9 +39,10 @@ public class MyTransferProtocol implements IRDTProtocol {
                 Integer checksum = i;
                 Integer xor = i;
                 Integer[] packetContents = new Integer[Math.min(packetSize, fileContents.length - filePointer) + 3];
-                packetContents[2] = i;
+                packetContents[2] = i >>> 8;
+                packetContents[3] = i & 255;
                 for(int j = 0; j < packetSize && filePointer < fileContents.length; j++){
-                    packetContents[i + 3] = fileContents[filePointer];
+                    packetContents[i + 4] = fileContents[filePointer];
                     checksum += fileContents[filePointer];
                     xor = xor ^ fileContents[filePointer];
                     filePointer++;
@@ -52,8 +53,8 @@ public class MyTransferProtocol implements IRDTProtocol {
                 packets.put(i, packetContents);
             }
             Integer[] firstPacket = new Integer[4];
-            firstPacket[2] = 0;
-            firstPacket[3] = packets.size();
+            firstPacket[2] = packets.size() >>> 8;
+            firstPacket[3] = packets.size() & 255;
             firstPacket[1] = packets.size();
             firstPacket[0] = packets.size() + packets.size();
             packets.put(0, firstPacket);
@@ -61,6 +62,7 @@ public class MyTransferProtocol implements IRDTProtocol {
             for (int i = 0; i < packets.size(); i++) {
                 networkLayer.sendPacket(packets.get(i));
             }
+            networkLayer.sendPacket(new Integer[0]);
             
             boolean done = false;
             while (!done){
@@ -70,41 +72,21 @@ public class MyTransferProtocol implements IRDTProtocol {
                 } else {
                     int checksum = response[0];
                     int xor = response[1];
-                    int[] numbers = new int[response.length - 2];
-                    System.arraycopy(response, 2, numbers, 0, response.length - 2);
-                    for(int i: numbers){
-                        checksum -= i;
-                        xor ^= i;
+                    int[] numbers = new int[(response.length - 2) / 2];
+                    for(int i = 0; i < numbers.length; i++){
+                        checksum -= response[i * 2];
+                        checksum -= response[i * 2 + 1];
+                        xor ^= response[i * 2];
+                        xor ^= response[i * 2 + 1];
+                        numbers[i] = response[i * 2] * 256 + response[i * 2 + 1];
                     }
-                    
-                    for(int i: numbers){
-                        networkLayer.sendPacket(packets.get(i));
+                    if (checksum != 0 || xor != 0) {
+                        networkLayer.sendPacket(new Integer[0]);
+                    } else {
+                        for (int i : numbers) {
+                            networkLayer.sendPacket(packets.get(i));
+                        }
                     }
-                }
-            }
-            
-            // loop until we are done transmitting the file
-            stop = false;
-            while (!stop) {
-                // create a new packet
-                // with size packetSize
-                // or the remaining file size if less than packetSize
-                Integer[] packetToSend = new Integer[Math.min(packetSize,
-                        fileContents.length - filePointer)];
-
-                // read (packetToSend.length) bytes and store them in the packet
-                for (int i = 0; i < packetSize && filePointer < fileContents.length; i++) {
-                    packetToSend[i] = fileContents[filePointer];
-                    filePointer++;
-                }
-
-                // send the packet to the network layer
-                networkLayer.sendPacket(packetToSend);
-
-                // if we reached the end of the file
-                if (filePointer >= fileContents.length) {
-                    System.out.println("Reached end-of-file. Done sending.");
-                    stop = true;
                 }
             }
 
