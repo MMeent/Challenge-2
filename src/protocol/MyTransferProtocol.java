@@ -38,6 +38,10 @@ public class MyTransferProtocol implements IRDTProtocol {
     @Override
     public void TimeoutElapsed(Object tag) {
         this.brake = true;
+        try {
+        } catch (Exception e) {
+            Utils.Timeout.Stop();
+        }
         if(this.role == Role.Receiver){
             switch(state){
                 case 1: this.receiverConnect(); break;
@@ -78,7 +82,6 @@ public class MyTransferProtocol implements IRDTProtocol {
             packet = networkLayer.receivePacket();
             if (packet != null) {
                 connected = true;
-                Utils.Timeout.Stop();
             }
         }
         senderSend();
@@ -110,7 +113,6 @@ public class MyTransferProtocol implements IRDTProtocol {
         while(!brake && packet == null){
             networkLayer.receivePacket();
         }
-        Utils.Timeout.Stop();
         this.brake = false;
         if (packet == null) {
             return;
@@ -145,7 +147,6 @@ public class MyTransferProtocol implements IRDTProtocol {
                 connected = true;
             }
         }
-        Utils.Timeout.Stop();
         this.brake = false;
         if(!brake) this.receiverReceive();
     }
@@ -164,7 +165,6 @@ public class MyTransferProtocol implements IRDTProtocol {
                 continue;
             }
             if (packet.length == 0) {
-                Utils.Timeout.Stop();
                 this.receiverReceive();
             }
             if (!Packets.checkPacket(packet)) {
@@ -172,7 +172,6 @@ public class MyTransferProtocol implements IRDTProtocol {
             }
             this.packets.put(Packets.getIndex(packet), packet);
         }
-        Utils.Timeout.Stop();
         this.brake = false;
     }
     
@@ -207,11 +206,9 @@ public class MyTransferProtocol implements IRDTProtocol {
         while(!brake){
             Integer[] packet = networkLayer.receivePacket();
             if (packet != null && packet.length == 0) {
-                Utils.Timeout.Stop();
                 this.receiverFinish();
             }
         }
-        Utils.Timeout.Stop();
         this.brake = false;
     }
     
