@@ -3,7 +3,6 @@ package protocol;
 import client.*;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -39,8 +38,8 @@ public class MyTransferProtocol implements IRDTProtocol {
     public void TimeoutElapsed(Object tag) {
         this.brake = true;
         try {
-        } catch (Exception e) {
             Utils.Timeout.Stop();
+        } catch (Exception e) {
         }
         if(this.role == Role.Receiver){
             switch(state){
@@ -78,13 +77,13 @@ public class MyTransferProtocol implements IRDTProtocol {
         packet[2] = size >>> 8;
         packet[3] = size;
         networkLayer.sendPacket(packet);
-        while (!connected) {
+        while (!connected && !brake) {
             packet = networkLayer.receivePacket();
             if (packet != null) {
                 connected = true;
             }
         }
-        senderSend();
+        if(!brake) senderSend();
     }
     
     public void senderSend(){
@@ -113,7 +112,6 @@ public class MyTransferProtocol implements IRDTProtocol {
         while(!brake && packet == null){
             networkLayer.receivePacket();
         }
-        this.brake = false;
         if (packet == null) {
             return;
         }
@@ -147,7 +145,7 @@ public class MyTransferProtocol implements IRDTProtocol {
                 connected = true;
             }
         }
-        this.brake = false;
+        Utils.Timeout.Stop();
         if(!brake) this.receiverReceive();
     }
     
@@ -172,7 +170,6 @@ public class MyTransferProtocol implements IRDTProtocol {
             }
             this.packets.put(Packets.getIndex(packet), packet);
         }
-        this.brake = false;
     }
     
     public void receiverFix(){
@@ -209,7 +206,6 @@ public class MyTransferProtocol implements IRDTProtocol {
                 this.receiverFinish();
             }
         }
-        this.brake = false;
     }
     
     public void receiverFinish(){
