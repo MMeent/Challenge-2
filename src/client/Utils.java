@@ -45,7 +45,7 @@ public class Utils {
 	 *         transmit
 	 */
 	public static Integer[] getFileContents() {
-		File fileToTransmit = new File("texting.bmp");
+		File fileToTransmit = new File("rdtcInput.jpg");
 		FileInputStream fileStream = null;
 		try {
 			fileStream = new FileInputStream(fileToTransmit);

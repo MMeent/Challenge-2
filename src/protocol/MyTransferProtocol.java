@@ -35,7 +35,7 @@ public class MyTransferProtocol implements IRDTProtocol {
 
             boolean stop = false;
             
-            for(int i = 1; filePointer < fileContents.length; i++){
+            for (int i = 1; filePointer < fileContents.length; i++) {
                 Integer checksum = i;
                 Integer xor = i;
                 Integer[] packetContents = new Integer[Math.min(packetSize, fileContents.length - filePointer) + 3];
@@ -50,6 +50,37 @@ public class MyTransferProtocol implements IRDTProtocol {
                 packetContents[0] = checksum;
                 packetContents[1] = xor;
                 packets.put(i, packetContents);
+            }
+            Integer[] firstPacket = new Integer[4];
+            firstPacket[2] = 0;
+            firstPacket[3] = packets.size();
+            firstPacket[1] = packets.size();
+            firstPacket[0] = packets.size() + packets.size();
+            packets.put(0, firstPacket);
+            
+            for (int i = 0; i < packets.size(); i++) {
+                networkLayer.sendPacket(packets.get(i));
+            }
+            
+            boolean done = false;
+            while (!done){
+                Integer[] response = networkLayer.receivePacket();
+                if (response.length == 0){
+                    done = true;
+                } else {
+                    int checksum = response[0];
+                    int xor = response[1];
+                    int[] numbers = new int[response.length - 2];
+                    System.arraycopy(response, 2, numbers, 0, response.length - 2);
+                    for(int i: numbers){
+                        checksum -= i;
+                        xor ^= i;
+                    }
+                    
+                    for(int i: numbers){
+                        networkLayer.sendPacket(packets.get(i));
+                    }
+                }
             }
             
             // loop until we are done transmitting the file
