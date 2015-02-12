@@ -10,10 +10,15 @@ import java.util.Map;
 public class MyTransferProtocol implements IRDTProtocol {
     public static final int PACKET_SIZE = 128;
 
-    public static boolean brake = false;
+    private int state = 0;
+    
+    private int amount = 0;
+    private boolean brake;
     NetworkLayer networkLayer;
 
     private Role role = Role.Receiver;
+    
+    private Map<Integer, Integer[]> packets;
     //private Role role = Role.Receiver;
 
     @Override
@@ -241,6 +246,15 @@ public class MyTransferProtocol implements IRDTProtocol {
     @Override
     public void TimeoutElapsed(Object tag) {
         this.brake = true;
+        if(this.role == Role.Receiver){
+            switch(state){
+                case 1: this.receiverConnect(); break;
+                case 2: this.receiverFix(); break;
+                case 3: this.receiverFix(); break;
+                case 4: this.receiverQuit(); break;
+                default: this.receiverQuit(); break;
+            }
+        }
     }
 
     public void senderConnect(){
@@ -260,25 +274,53 @@ public class MyTransferProtocol implements IRDTProtocol {
     
     public void senderQuit(){
         
-        
     }
     
     public void receiverConnect(){
-        
-        
+        this.state = 1;
+        System.out.println("Start connection");
+        boolean connected = false;
+        Utils.Timeout.SetTimeout(500L, this, null);
+        Utils.Timeout.Start();
+        while(!connected && !brake){
+            Integer[] packet = networkLayer.receivePacket();
+            if(packet != null && Packets.checkPacket(packet)){
+                this.amount = Packets.getIndex(packet);
+                networkLayer.sendPacket(new Integer[0]);
+                connected = true;
+            }
+        }
+        Utils.Timeout.Stop();
+        if(!brake) this.receiverReceive();
     }
     
     public void receiverReceive(){
-        
-        
+        this.state = 2;
+        System.out.println("Start receiving");
+        Utils.Timeout.SetTimeout(500L, this, null);
+        Utils.Timeout.Start();
+        while (!brake && this.packets.size() < amount) {
+            Integer[] packet = networkLayer.receivePacket();
+            if (packet == null || !Packets.checkPacket(packet)) {
+                continue;
+            }
+            this.packets.put(Packets.getIndex(packet), packet);
+        }
+        Utils.Timeout.Stop();
+        if (!brake) {
+            this.receiverFix();
+        }
     }
     
     public void receiverFix(){
-        
-        
+        for(int i = 0; i < amount; )
     }
     
     public void receiverQuit(){
+        
+    }
+    
+    public void receiverFinish(){
         
         
     }
