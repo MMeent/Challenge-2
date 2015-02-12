@@ -145,7 +145,6 @@ public class MyTransferProtocol implements IRDTProtocol {
                 connected = true;
             }
         }
-        Utils.Timeout.Stop();
         if(!brake) this.receiverReceive();
     }
     

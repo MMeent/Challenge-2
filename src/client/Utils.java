@@ -117,8 +117,8 @@ public class Utils {
 		 * Starts the helper thread
 		 */
 		public static void Start() {
-			if (started)
-				throw new IllegalStateException("Already started");
+			//if (started)
+			//	throw new IllegalStateException("Already started");
 			started = true;
 			eventTriggerThread = new Thread(new Timeout());
 			eventTriggerThread.start();
