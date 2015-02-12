@@ -41,7 +41,8 @@ public class MyTransferProtocol implements IRDTProtocol {
             boolean connected = false;
             while (!connected) {
                 networkLayer.sendPacket(packets.get(0));
-                Integer[] resp = networkLayer.receivePacket();
+                Integer[] resp = null;
+                while((resp = networkLayer.receivePacket()) == null){}
                 if (resp.length == 0) {
                     connected = true;
                 }
@@ -53,7 +54,8 @@ public class MyTransferProtocol implements IRDTProtocol {
             
             boolean done = false;
             while (!done){
-                Integer[] response = networkLayer.receivePacket();
+                Integer[] response = null;
+                while ((response = networkLayer.receivePacket()) == null) {}
                 if (response.length == 0){
                     done = true;
                 } else {
@@ -94,70 +96,101 @@ public class MyTransferProtocol implements IRDTProtocol {
 
             // create the array that will contain the file contents
             Integer[] fileContents = new Integer[0];
-            
+
             Map<Integer, Integer[]> packets = new HashMap<Integer, Integer[]>();
             boolean connected = false;
             int total = 0;
             while (!connected) {
-                Integer[] firstPacket = networkLayer.receivePacket();
+                Integer[] firstPacket = null;
+                while((firstPacket = networkLayer.receivePacket()) == null) {}
                 if (Packets.checkPacket(firstPacket)) {
+                    total = firstPacket[2] * 256 + firstPacket[3];
+                    networkLayer.sendPacket(new Integer[0]);
                     connected = true;
+                } else {
+                    Integer[] b = new Integer[1];
+                    b[0] = 0;
+                    networkLayer.sendPacket(b);
                 }
             }
-            
-            while(packets.size() < total){
-                Integer[] packet = networkLayer.receivePacket();
-                int checksum = packet[0];
-                int xor = packet[1];
-                int index = packet[2] * 255 + packet[3];
-                
+
+            for (int i = 0; i < total; i++) {
+                Integer[] packet = null;
+                while ((packet = networkLayer.receivePacket()) == null) {}
+                ;
+                if (Packets.checkPacket(packet)) {
+                    packets.put(Packets.getIndex(packet), packet);
+                }
             }
-            
+
             // loop until we are done receiving the file
             boolean stop = false;
             while (!stop) {
-                corruptPackets = new ArrayList<Integer>();
+                List<Integer> missing = new ArrayList<Integer>();
+                for (int i = 0; i < total; i++) {
+                    if (!packets.containsKey((Integer) i + 1)) {
+                        missing.add(i);
+                    }
+                }
+
+                Integer[] packet = new Integer[2 + missing.size() * 2];
+                int checksum = 0;
+                int xor = 0;
+
+                for (int i = 0; i < missing.size(); i++) {
+                    int j = missing.get(i);
+                    packet[j * 2 + 2] = j & 255;
+                    packet[j * 2 + 3] = j >>> 8;
+                    checksum += j & 255;
+                    xor ^= j & 255;
+                    checksum += j >>> 8;
+                    xor ^= j >>> 8;
+                }
+                checksum += xor;
+
+                packet[0] = checksum;
+                packet[1] = xor;
+
+                networkLayer.sendPacket(packet);
 
                 // try to receive a packet from the network layer
-                Integer[] packet = networkLayer.receivePacket();
+                packet = null;
+                while ((packet = networkLayer.receivePacket()) == null) {
+                }
+                ;
 
-                // if we indeed received a packet
-                if (packet != null) {
+                // if we reached the end of file, stop receiving
+                if (packet.length == 0) {
+                    System.out.println("Reached end-of-file. Done receiving.");
+                    stop = true;
+                }
 
-                    // if we reached the end of file, stop receiving
-                    if (packet.length == 0) {
-                        System.out.println("Reached end-of-file. Done receiving.");
-                        stop = true;
-                    }
-
-
-
-                    // if we haven't reached the end of file yet
-                    else {
-                        // make a new integer array which contains fileContents
-                        // + packet
-                        Integer[] newFileContents = new Integer[fileContents.length
-                                + packet.length];
-                        System.arraycopy(fileContents, 0, newFileContents, 0,
-                                fileContents.length);
-                        System.arraycopy(packet, 0, newFileContents,
-                                fileContents.length, packet.length);
-
-                        // and assign it as the new fileContents
-                        fileContents = newFileContents;
-                    }
-                }else{
-                    // wait ~10ms (or however long the OS makes us wait) before trying again
-                    try {
-                        Thread.sleep(10);
-                    } catch (InterruptedException e) {
-                        stop = true;
+                // if we haven't reached the end of file yet
+                else {
+                    if (Packets.checkPacket(packet)) {
+                        packets.put(Packets.getIndex(packet), packet);
                     }
                 }
             }
+            for (int i = 0; i < total; i++) {
+                Integer[] ar = packets.get(i);
+                
+                Integer[] arr = new Integer[ar.length - 4];
+                System.arraycopy(ar, 4, arr, 0, ar.length - 4);
+                
+                Integer[] newFileContents = new Integer[fileContents.length
+                        + arr.length];
+                System.arraycopy(fileContents, 0, newFileContents, 0,
+                        fileContents.length);
+                System.arraycopy(arr, 0, newFileContents,
+                        fileContents.length, arr.length);
 
-            // write to the output file
-            Utils.setFileContents(fileContents);
+                // and assign it as the new fileContents
+                fileContents = newFileContents;
+
+                // write to the output file
+                Utils.setFileContents(fileContents);
+            }
         }
     }
 

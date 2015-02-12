@@ -24,11 +24,11 @@ public class Packets {
         for (int i = 1; filePointer < fileContents.length; i++) {
             Integer checksum = i;
             Integer xor = i;
-            Integer[] packetContents = new Integer[Math.min(MyTransferProtocol.PACKET_SIZE, fileContents.length - filePointer) + 3];
+            Integer[] packetContents = new Integer[Math.min(MyTransferProtocol.PACKET_SIZE, fileContents.length - filePointer) + 4];
             packetContents[2] = i >>> 8;
             packetContents[3] = i & 255;
             for(int j = 0; j < MyTransferProtocol.PACKET_SIZE && filePointer < fileContents.length; j++){
-                packetContents[i + 4] = fileContents[filePointer];
+                packetContents[j + 4] = fileContents[filePointer];
                 checksum += fileContents[filePointer];
                 xor = xor ^ fileContents[filePointer];
                 filePointer++;
@@ -75,5 +75,12 @@ public class Packets {
         }
 
         return corruptPackets;
+    }
+    
+    public static Integer getIndex(Integer[] packet){
+        if (packet.length < 4) {
+            return null;
+        }
+        return packet[2] * 256 + packet[3];
     }
 }
