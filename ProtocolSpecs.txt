@@ -1,13 +1,16 @@
 indexed packets = Map(int index, Integer[] packet)
 
-ServerPacket: checksum - xor - nummer - contents
-	[note] contents bij nummer -1 is grootte van indexed packets
-ClientPacket: checksum - xor - nummers
+ServerPacket: checksum - xor - nummer1 - nummer2 - contents
+	[note] [nummer1 - nummer2] bij eerste packet is grootte van indexed packets
+ClientPacket: checksum - xor - nummer1(1) - nummer2(1) - nummer1(2) nummer2(2) - ... - nummer1(n) - nummer2(n);
 
 checksum = xor + nummer + content(1) + content(2) + ... + content(n)
 xor = nummer ^ content(1) ^ content(2) ^ ... ^ content(n)
 
 1. Server zend aantal packets te verwachten
+2. Client stuurt 0 (OK) of 1 (NOT OK)
+3. indien 0, terug naar stap 1;
+
 2. Server verzendend packets
 3. Client ontvangt packets
 4. Client verzend lijst fout ontvangen packets

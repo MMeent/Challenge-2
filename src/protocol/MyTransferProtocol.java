@@ -34,13 +34,20 @@ public class MyTransferProtocol implements IRDTProtocol {
 
             // keep track of where we are in the data
             int filePointer = 0;
-
-            Map<Integer, Integer[]> packets = new HashMap<Integer, Integer[]>();
-
+            
             //Map with the index of a packet as Key and the value of that packet as content.
             Map<Integer, Integer[]> packets = Packets.makePackets(fileContents);
 
-            for (int i = 0; i < packets.size(); i++) {
+            boolean connected = false;
+            while (!connected) {
+                networkLayer.sendPacket(packets.get(0));
+                Integer[] resp = networkLayer.receivePacket();
+                if (resp.length == 0) {
+                    connected = true;
+                }
+            }
+            
+            for (int i = 1; i < packets.size(); i++) {
                 networkLayer.sendPacket(packets.get(i));
             }
             
@@ -87,7 +94,25 @@ public class MyTransferProtocol implements IRDTProtocol {
 
             // create the array that will contain the file contents
             Integer[] fileContents = new Integer[0];
-
+            
+            Map<Integer, Integer[]> packets = new HashMap<Integer, Integer[]>();
+            boolean connected = false;
+            int total = 0;
+            while (!connected) {
+                Integer[] firstPacket = networkLayer.receivePacket();
+                if (Packets.checkPacket(firstPacket)) {
+                    connected = true;
+                }
+            }
+            
+            while(packets.size() < total){
+                Integer[] packet = networkLayer.receivePacket();
+                int checksum = packet[0];
+                int xor = packet[1];
+                int index = packet[2] * 255 + packet[3];
+                
+            }
+            
             // loop until we are done receiving the file
             boolean stop = false;
             while (!stop) {

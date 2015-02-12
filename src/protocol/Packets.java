@@ -25,9 +25,10 @@ public class Packets {
             Integer checksum = i;
             Integer xor = i;
             Integer[] packetContents = new Integer[Math.min(MyTransferProtocol.PACKET_SIZE, fileContents.length - filePointer) + 3];
-            packetContents[2] = i;
+            packetContents[2] = i >>> 8;
+            packetContents[3] = i & 255;
             for(int j = 0; j < MyTransferProtocol.PACKET_SIZE && filePointer < fileContents.length; j++){
-                packetContents[i + 3] = fileContents[filePointer];
+                packetContents[i + 4] = fileContents[filePointer];
                 checksum += fileContents[filePointer];
                 xor = xor ^ fileContents[filePointer];
                 filePointer++;
@@ -38,8 +39,8 @@ public class Packets {
             packets.put(i, packetContents);
         }
         Integer[] firstPacket = new Integer[4];
-        firstPacket[2] = 0;
-        firstPacket[3] = packets.size();
+        firstPacket[2] = packets.size() >>> 8;
+        firstPacket[3] = packets.size() & 255;
         firstPacket[1] = packets.size();
         firstPacket[0] = packets.size() + packets.size();
         packets.put(0, firstPacket);
