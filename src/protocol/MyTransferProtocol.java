@@ -21,6 +21,11 @@ public class MyTransferProtocol implements IRDTProtocol {
 
     @Override
     public void run() {
+        try {
+            Utils.Timeout.Stop();
+        } catch (Exception e) {
+            
+        }
         if (this.role == Role.Receiver) {
             this.receiverConnect();
         }
